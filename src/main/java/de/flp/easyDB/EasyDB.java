@@ -17,7 +17,6 @@ public class EasyDB {
         instance = this;
         mySQLConnector = new MySQLConnector(host, port, username, password, database);
 
-        System.out.println("tets");
         repositoryManager = new RepositoryManager();
     }
 

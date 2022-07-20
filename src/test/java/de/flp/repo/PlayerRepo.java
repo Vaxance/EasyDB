@@ -17,4 +17,7 @@ import de.flp.easyDB.repositories.anotaions.RepositoryTable;
 })
 public class PlayerRepo extends Repository {
 
+    public PlayerRepo() {
+    }
+
 }

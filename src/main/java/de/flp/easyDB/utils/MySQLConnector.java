@@ -1,5 +1,8 @@
 package de.flp.easyDB.utils;
 
+import de.flp.easyDB.repositories.Repository;
+import de.flp.easyDB.repositories.anotaions.Field;
+import de.flp.easyDB.repositories.anotaions.Fields;
 import de.flp.easyDB.repositories.anotaions.RepositoryTable;
 
 import java.sql.Connection;
@@ -37,7 +40,7 @@ public class MySQLConnector {
         if (!isConnected()) {
 
             try {
-                connection = DriverManager.getConnection("jdbc:mysql://37.114.47.122:19137/testdb", username, password);
+                connection = DriverManager.getConnection("jdbc:mysql://" + host + ":" + port + "/" + database + "", username, password);
                 System.out.println("MySQL-Verbindung gestartet!");
             } catch (Exception e) {
                 System.out.println("MySQL-Verbindung konnte nicht gestartet werden!");
@@ -68,8 +71,6 @@ public class MySQLConnector {
         return connection != null;
     }
 
-  //todo recode for system
-
     public void createTable(String tableName, String[] fields) {
 
         if (!isConnected()) connect();
@@ -91,7 +92,6 @@ public class MySQLConnector {
             querry = querry + ")";
 
             try {
-                System.out.println(querry);
                 connection.createStatement().executeUpdate(querry);
             } catch (Exception e) {
                 System.out.println("Die KnockOut-Tabellen konnten nicht erstellt werden!");
@@ -101,9 +101,9 @@ public class MySQLConnector {
 
     }
 
-    public String getResult(HashMap<String, String> requires, String get) {
+    public String getResult(HashMap<String, String> requires, String get, Class<Repository> clazz) {
 
-        AtomicReference<String> querry = new AtomicReference<>("SELECT * FROM " + getClass().getDeclaredAnnotation(RepositoryTable.class).tableName() + " WHERE ");
+        AtomicReference<String> querry = new AtomicReference<>("SELECT * FROM " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " WHERE ");
 
         AtomicBoolean first = new AtomicBoolean(true);
         requires.forEach((field, contains) -> {
@@ -129,7 +129,55 @@ public class MySQLConnector {
         return "";
     }
 
-    public void update(String qry) {
+    public void insert(HashMap<String, String> requires, Class<Repository> clazz) {
+
+        AtomicReference<String> querry = new AtomicReference<>("INSERT INTO " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " (");
+
+        Field[] fields = clazz.getDeclaredAnnotation(Fields.class).fields();
+        for (int i = fields.length; i > 0; i--) {
+            if(i>1) querry.set(querry + fields[i-1].fieldName() + ", ");
+            else querry.set(querry + fields[i-1].fieldName());
+        }
+
+        querry.set(querry + ") VALUES (");
+
+        for (int i = fields.length; i > 0; i--) {
+            if(i>1) {
+                if(requires.containsKey(fields[i-1].fieldName())) querry.set(querry + "'" + requires.get(fields[i-1].fieldName()) + "',");
+                else querry.set(querry + "'none',");
+            } else {
+                if(requires.containsKey(fields[i-1].fieldName())) querry.set(querry + "'" + requires.get(fields[i-1].fieldName()) + "')");
+                else querry.set(querry + "'none'");
+            }
+        }
+        use(querry.toString());
+    }
+
+    public void delete(HashMap<String, String> requires, Class<Repository> clazz) {
+        AtomicReference<String> querry = new AtomicReference<>("DELETE FROM " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " WHERE ");
+        AtomicBoolean first = new AtomicBoolean(true);
+        requires.forEach((field, contains) -> {
+            if (!first.get())  querry.set(querry + " AND ");
+            querry.set(querry  + field + "='" + contains + "'");
+            first.set(false);
+        });
+
+        use(querry.toString());
+    }
+    public void update(HashMap<String, String> requires, String setField, String setValue, Class<Repository> clazz) {
+        AtomicReference<String> querry = new AtomicReference<>("UPDATE " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " SET " + setField + "='" + setValue + "' WHERE ");
+
+        AtomicBoolean first = new AtomicBoolean(true);
+        requires.forEach((field, contains) -> {
+            if (!first.get())  querry.set(querry + " AND ");
+            querry.set(querry  + field + "='" + contains + "'");
+            first.set(false);
+        });
+
+        use(querry.toString());
+    }
+
+    private void use(String qry) {
 
         if (!isConnected()) connect();
 
@@ -145,7 +193,7 @@ public class MySQLConnector {
 
     }
 
-    public ResultSet getResult(String qry) {
+    private ResultSet getResult(String qry) {
 
         if (!isConnected()) connect();
 

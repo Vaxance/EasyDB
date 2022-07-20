@@ -16,18 +16,9 @@ import java.util.List;
 public abstract class Repository {
 
     private static HashMap<String, String> request;
+    public Class<Repository> clazz;
     public Repository() {
         request = new HashMap<>();
-    }
-
-    public void createTable() {
-        List<String> fields = new ArrayList<>();
-
-        for(Field field : getClass().getDeclaredAnnotation(Fields.class).fields()) {
-            fields.add(field.fieldName());
-        }
-
-        EasyDB.getInstance().getMySQLConnector().createTable(getClass().getDeclaredAnnotation(RepositoryTable.class).tableName(), fields.toArray(new String[0]));
     }
 
     public FieldItem field(String field) {
@@ -39,7 +30,21 @@ public abstract class Repository {
         return repository;
     }
 
-    public String get(String field) {
-        return EasyDB.getInstance().getMySQLConnector().getResult(request, field);
+    public void insert() {
+        EasyDB.getInstance().getMySQLConnector().insert(request, (Class<Repository>) getClass());
     }
+
+    public String get(String field) {
+        return EasyDB.getInstance().getMySQLConnector().getResult(request, field, (Class<Repository>) getClass());
+    }
+
+    public void update(String field, String value) {
+        EasyDB.getInstance().getMySQLConnector().update(request, field, value, (Class<Repository>) getClass());
+    }
+
+    public void remove() {
+        EasyDB.getInstance().getMySQLConnector().delete(request, (Class<Repository>) getClass());
+    }
+
+
 }
