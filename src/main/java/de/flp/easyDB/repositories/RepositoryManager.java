@@ -4,6 +4,8 @@ import de.flp.easyDB.EasyDB;
 import de.flp.easyDB.repositories.anotaions.Field;
 import de.flp.easyDB.repositories.anotaions.Fields;
 import de.flp.easyDB.repositories.anotaions.RepositoryTable;
+import de.flp.easyDB.repositories.dataBasedRepos.Repository;
+import de.flp.easyDB.repositories.objekdBasedRepos.ObjektRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,16 +17,16 @@ import java.util.List;
  */
 public class RepositoryManager {
 
-    private HashMap<String, Repository> repoMap;
     public RepositoryManager() {
-        repoMap = new HashMap<>();
     }
 
     public void addRepository(Repository repository) {
         createTable(repository);
-        repoMap.put(repository.getClass().getDeclaredAnnotation(RepositoryTable.class).tableName(), repository);
     }
 
+    public void addRepository(ObjektRepository repository) {
+        EasyDB.getInstance().getMySQLConnector().createTable(repository.getClass().getDeclaredAnnotation(RepositoryTable.class).tableName());
+    }
 
     public void createTable(Repository repository) {
         List<String> fields = new ArrayList<>();

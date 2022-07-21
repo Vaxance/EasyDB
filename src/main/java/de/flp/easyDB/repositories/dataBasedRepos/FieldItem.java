@@ -1,4 +1,4 @@
-package de.flp.easyDB.repositories;
+package de.flp.easyDB.repositories.dataBasedRepos;
 
 /**
  * @author FlorianLetsPlays

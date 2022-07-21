@@ -1,7 +1,11 @@
 package de.flp;
 
 import de.flp.easyDB.EasyDB;
+import de.flp.easyDB.async.DataResult;
+import de.flp.repo.BookSave;
 import de.flp.repo.PlayerRepo;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author FlorianLetsPlays
@@ -11,16 +15,19 @@ public class Main {
 
     private static EasyDB easyDB;
 
+    private static long start;
     public static void main(String[] args) {
         easyDB = new EasyDB("127.0.0.1", "3306", "root", "", "testdb");
 
+        easyDB.getRepositoryManager().addRepository(new BookSave());
 
-        easyDB.getRepositoryManager().addRepository(new PlayerRepo());
+        String s = "";
+        start = System.currentTimeMillis();
+        s = new BookSave().field("ISBN").cointains("5456465").get("name");
 
-        new PlayerRepo().field("name").cointains("florian").update("age", "16");
-        new PlayerRepo().field("name").cointains("jonas").insert();
-        new PlayerRepo().field("name").cointains("admin").get("age");
-        new PlayerRepo().field("name").cointains("lolGamer").remove();
+        long outcome = System.currentTimeMillis() - start;
+        System.out.println(s + " - " + outcome + "ms");
+
 
     }
 

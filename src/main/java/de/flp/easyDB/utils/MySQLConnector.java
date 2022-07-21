@@ -1,15 +1,15 @@
 package de.flp.easyDB.utils;
 
-import de.flp.easyDB.repositories.Repository;
-import de.flp.easyDB.repositories.anotaions.Field;
-import de.flp.easyDB.repositories.anotaions.Fields;
+import de.flp.easyDB.async.DataResult;
 import de.flp.easyDB.repositories.anotaions.RepositoryTable;
+import de.flp.easyDB.repositories.objekdBasedRepos.ObjektRepository;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -24,6 +24,8 @@ public class MySQLConnector {
     private final String password;
     private final String database;
     private static Connection connection;
+
+    private static final Map<Class<?>, String> tableNames = new HashMap<>();
 
     public MySQLConnector(String host, String port, String username, String password, String database) {
         this.host = host;
@@ -71,47 +73,115 @@ public class MySQLConnector {
         return connection != null;
     }
 
-    public void createTable(String tableName, String[] fields) {
 
-        if (!isConnected()) connect();
+    //--ObjektBased--//
 
-        if (isConnected()) {
+    public void createTable(String tableName) {
 
-            String querry = "CREATE TABLE IF NOT EXISTS " + tableName + " (";
+            if (!isConnected()) connect();
 
-            boolean first = true;
-
-            for (String field : fields) {
-                if (first) {
-                    querry = querry + field + " VARCHAR(255)";
-                    first = false;
+            if (isConnected()) {
+                try {
+                    use("CREATE TABLE IF NOT EXISTS " + tableName + " (input VARCHAR(255), save VARCHAR(255))");
+                } catch (Exception e) {
+                    System.out.println("Die Tabellen konnten nicht erstellt werden!");
+                    e.printStackTrace();
                 }
-                else querry = querry + ", " + field + "  VARCHAR(255)";
             }
-
-            querry = querry + ")";
-
-            try {
-                connection.createStatement().executeUpdate(querry);
-            } catch (Exception e) {
-                System.out.println("Die KnockOut-Tabellen konnten nicht erstellt werden!");
-                e.printStackTrace();
-            }
-        }
 
     }
 
-    public String getResult(HashMap<String, String> requires, String get, Class<Repository> clazz) {
+    public String getResults(String key, Class<ObjektRepository> clazz) {
+        final ResultSet rs = getResult("SELECT * FROM " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " WHERE input='" + key + "'");
+        try {
+            if (rs.next()) {
+                final String string = rs.getString("save");
+                return string;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                rs.close();
+            } catch (SQLException e2) {
+                e2.printStackTrace();
+            }
+        }
+        return null;
+    }
 
-        AtomicReference<String> querry = new AtomicReference<>("SELECT * FROM " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " WHERE ");
+    public void insert(String key, String save, Class<ObjektRepository> clazz) {
+        String insert = "INSERT INTO " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " (input, save) VALUES (?, ?)";
+        try{
+            PreparedStatement ps = connection.prepareStatement(insert);
+            ps.setString(1, key);
+            ps.setString(2, save);
 
-        AtomicBoolean first = new AtomicBoolean(true);
-        requires.forEach((field, contains) -> {
-            if (!first.get())  querry.set(querry + " AND ");
-            querry.set(querry  + field + "='" + contains + "'");
-            first.set(false);
+            ps.executeUpdate();
+        } catch (Exception e) {}
+
+    }
+
+    public void update(String key, String save, Class<ObjektRepository> clazz) {
+        String update = "UPDATE " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " SET save=? WHERE input=?";
+        try{
+            System.out.println(update);
+            PreparedStatement ps = connection.prepareStatement(update);
+            ps.setString(1, save);
+            ps.setString(2, key);
+
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    //--Data-based--//
+    public void createTable(String tableName, String[] fields) {
+
+        CompletableFuture.runAsync(() -> {
+            if (!isConnected()) connect();
+
+            if (isConnected()) {
+
+                String querry = "CREATE TABLE IF NOT EXISTS " + tableName + " (";
+
+                boolean first = true;
+
+                for (String field : fields) {
+                    if (first) {
+                        querry += field + " VARCHAR(255)";
+                        first = false;
+                    } else querry += ", " + field + "  VARCHAR(255)";
+                }
+
+                querry = querry + ")";
+
+                try {
+                    connection.createStatement().executeUpdate(querry);
+                } catch (Exception e) {
+                    System.out.println("Die Tabellen konnten nicht erstellt werden!");
+                    e.printStackTrace();
+                }
+            }
+
         });
-        final ResultSet rs = getResult(querry.toString());
+
+    }
+
+    public String getResult(HashMap<String, String> requires, String get, Class<?> clazz) {
+        mapClass(clazz);
+        String query = "SELECT * FROM " + tableNames.get(clazz) + " WHERE ";
+
+        boolean first = true;
+
+        for (String field : requires.keySet()) {
+            if (!first) query += " AND ";
+            query += field + "='" + requires.get(field) + "'";
+            first = false;
+        }
+        final ResultSet rs = getResult(query);
         try {
             if (rs.next()) {
                 final String string = rs.getString(get);
@@ -129,53 +199,83 @@ public class MySQLConnector {
         return "";
     }
 
-    public void insert(HashMap<String, String> requires, Class<Repository> clazz) {
+    public void getResultAsync(HashMap<String, String> requires, String get, Class<?> clazz, DataResult dataResult) {
+        CompletableFuture.runAsync(() -> {
+            mapClass(clazz);
+            String query = "SELECT * FROM " + tableNames.get(clazz) + " WHERE ";
 
-        AtomicReference<String> querry = new AtomicReference<>("INSERT INTO " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " (");
+            boolean first = true;
 
-        Field[] fields = clazz.getDeclaredAnnotation(Fields.class).fields();
-        for (int i = fields.length; i > 0; i--) {
-            if(i>1) querry.set(querry + fields[i-1].fieldName() + ", ");
-            else querry.set(querry + fields[i-1].fieldName());
-        }
-
-        querry.set(querry + ") VALUES (");
-
-        for (int i = fields.length; i > 0; i--) {
-            if(i>1) {
-                if(requires.containsKey(fields[i-1].fieldName())) querry.set(querry + "'" + requires.get(fields[i-1].fieldName()) + "',");
-                else querry.set(querry + "'none',");
-            } else {
-                if(requires.containsKey(fields[i-1].fieldName())) querry.set(querry + "'" + requires.get(fields[i-1].fieldName()) + "')");
-                else querry.set(querry + "'none'");
+            for (String field : requires.keySet()) {
+                if (!first) query += " AND ";
+                query += field + "='" + requires.get(field) + "'";
+                first = false;
             }
+            final ResultSet rs = getResult(query);
+            try {
+                if (rs.next()) {
+                    final String string = rs.getString(get);
+                    dataResult.handle(string);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    rs.close();
+                } catch (SQLException e2) {
+                    e2.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public void insert(HashMap<String, String> requires, Class<?> clazz) {
+        mapClass(clazz);
+
+        String query = "INSERT INTO " + tableNames.get(clazz) + " (";
+
+        List<String> values = new ArrayList<>();
+        for (String field : requires.keySet()) values.add("'" + requires.get(field) + "'");
+
+        query += requires.keySet().toString().replace("[", "").replace("]", "") + ") VALUES (";
+        query += values.toString().replace("[", "").replace("]", "") + ")";
+        use(query);
+    }
+
+    public void delete(HashMap<String, String> requires, Class<?> clazz) {
+        mapClass(clazz);
+        String query = "DELETE FROM " + tableNames.get(clazz) + " WHERE ";
+        boolean first = true;
+
+        for (String field : requires.keySet()) {
+            if (!first) query += " AND ";
+            query += field + "='" + requires.get(field) + "'";
+            first = false;
         }
-        use(querry.toString());
+
+        use(query);
     }
 
-    public void delete(HashMap<String, String> requires, Class<Repository> clazz) {
-        AtomicReference<String> querry = new AtomicReference<>("DELETE FROM " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " WHERE ");
+    public void update(HashMap<String, String> requires, String setField, String setValue, Class<?> clazz) {
+        mapClass(clazz);
+        AtomicReference<String> querry = new AtomicReference<>("UPDATE " + tableNames.get(clazz) + " SET " + setField + "='" + setValue + "' WHERE ");
+
         AtomicBoolean first = new AtomicBoolean(true);
         requires.forEach((field, contains) -> {
-            if (!first.get())  querry.set(querry + " AND ");
-            querry.set(querry  + field + "='" + contains + "'");
+            if (!first.get()) querry.set(querry + " AND ");
+            querry.set(querry + field + "='" + contains + "'");
             first.set(false);
         });
 
         use(querry.toString());
     }
-    public void update(HashMap<String, String> requires, String setField, String setValue, Class<Repository> clazz) {
-        AtomicReference<String> querry = new AtomicReference<>("UPDATE " + clazz.getDeclaredAnnotation(RepositoryTable.class).tableName() + " SET " + setField + "='" + setValue + "' WHERE ");
 
-        AtomicBoolean first = new AtomicBoolean(true);
-        requires.forEach((field, contains) -> {
-            if (!first.get())  querry.set(querry + " AND ");
-            querry.set(querry  + field + "='" + contains + "'");
-            first.set(false);
-        });
-
-        use(querry.toString());
+    public void mapClass(Class<?> clazz) {
+        if (!tableNames.containsKey(clazz))
+            tableNames.put(clazz, clazz.getDeclaredAnnotation(RepositoryTable.class).tableName());
     }
+
+    //--API--//
 
     private void use(String qry) {
 

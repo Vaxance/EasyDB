@@ -9,15 +9,14 @@ import de.flp.easyDB.repositories.anotaions.RepositoryTable;
  * @author FlorianLetsPlays
  * @version 1.0
  */
-@RepositoryTable(tableName = "players")
+@RepositoryTable(tableName = "books")
 @Fields(fields = {
         @Field(fieldName = "name"),
-        @Field(fieldName = "age"),
-        @Field(fieldName = "UUID")
+        @Field(fieldName = "ISBN"),
+        @Field(fieldName = "Sides")
 })
-public class PlayerRepo extends Repository {
+public class BookSave extends Repository {
 
-    public PlayerRepo() {
+    public BookSave() {
     }
-
 }
