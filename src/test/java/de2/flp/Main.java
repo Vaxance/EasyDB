@@ -1,7 +1,6 @@
 package de2.flp;
 
 import de.flp.easyDB.EasyDB;
-import de.flp.easyDB.repositories.objekdBasedRepos.Mapper;
 
 /**
  * @author FlorianLetsPlays
@@ -17,11 +16,13 @@ public class Main {
 
         EasyDB.getInstance().getRepositoryManager().addRepository(new Book());
 
+        Book book = (Book) Book.get("expoWabern", Book.class);
 
-        long start = System.currentTimeMillis();
-        Book book = (Book) Book.get("lol3", Book.class);
-        long outtime = System.currentTimeMillis() -start;
-        System.out.println(outtime);
+        System.out.println(book.name + " hat " + book.seiten + " Seiten!");
+
+        book.seiten = "99";
+
+        book.save("expoWabern");
 
         while (true) {}
 
