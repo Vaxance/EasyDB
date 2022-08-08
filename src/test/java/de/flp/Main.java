@@ -2,6 +2,7 @@ package de.flp;
 
 import de.flp.easyDB.EasyDB;
 import de.flp.repo.BookSave;
+import de2.flp.Book;
 
 /**
  * @author FlorianLetsPlays
@@ -17,12 +18,7 @@ public class Main {
 
         easyDB.getRepositoryManager().addRepository(new BookSave());
 
-        String s = "";
-        start = System.currentTimeMillis();
-        s = new BookSave().field("ISBN").cointains("5456465").get("name");
-
-        long outcome = System.currentTimeMillis() - start;
-        System.out.println(s + " - " + outcome + "ms");
+        new BookSave().field("name").cointains("test").remove();
 
 
     }

@@ -20,7 +20,7 @@ public class Main {
 
         System.out.println(book.name + " hat " + book.seiten + " Seiten!");
 
-        book.seiten = "99";
+        book.seiten = "199";
 
         book.save("expoWabern");
 

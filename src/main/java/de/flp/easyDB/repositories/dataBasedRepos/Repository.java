@@ -29,6 +29,10 @@ public abstract class Repository {
         return repository;
     }
 
+    public void insert() {
+        EasyDB.getInstance().getMySQLConnector().insert(request, getClass());
+    }
+
     public void insertAsync() {
         CompletableFuture.runAsync(() -> {
             EasyDB.getInstance().getMySQLConnector().insert(request, getClass());
@@ -39,6 +43,10 @@ public abstract class Repository {
         return EasyDB.getInstance().getMySQLConnector().getResult(request, field, getClass());
     }
 
+    public Boolean exists() {
+        return EasyDB.getInstance().getMySQLConnector().exists(request, getClass());
+    }
+
     public void getAsync(String field, DataResult dataResult) {
         EasyDB.getInstance().getMySQLConnector().getResultAsync(request, field, getClass(), dataResult);
     }
@@ -47,6 +55,10 @@ public abstract class Repository {
         CompletableFuture.runAsync(() -> {
             EasyDB.getInstance().getMySQLConnector().update(request, field, value, getClass());
         });
+    }
+
+    public void remove() {
+        EasyDB.getInstance().getMySQLConnector().delete(request, getClass());
     }
 
     public void removeAsync() {

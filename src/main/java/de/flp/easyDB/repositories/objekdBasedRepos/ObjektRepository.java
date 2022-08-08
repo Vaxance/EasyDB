@@ -1,6 +1,7 @@
 package de.flp.easyDB.repositories.objekdBasedRepos;
 
 import de.flp.easyDB.EasyDB;
+import de.flp.easyDB.utils.Mapper;
 
 import java.util.concurrent.CompletableFuture;
 

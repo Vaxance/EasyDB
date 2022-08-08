@@ -1,4 +1,4 @@
-package de.flp.easyDB.repositories.objekdBasedRepos;
+package de.flp.easyDB.utils;
 
 import lombok.SneakyThrows;
 import org.json.JSONArray;
