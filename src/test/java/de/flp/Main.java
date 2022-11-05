@@ -18,7 +18,7 @@ public class Main {
 
         easyDB.getRepositoryManager().addRepository(new BookSave());
 
-        new BookSave().field("name").cointains("test").remove();
+        new BookSave().field("name").cointains("BTD5").updateAsync("Siedes", "30");
 
 
     }

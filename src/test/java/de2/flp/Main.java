@@ -16,13 +16,13 @@ public class Main {
 
         EasyDB.getInstance().getRepositoryManager().addRepository(new Book());
 
-        Book book = (Book) Book.get("expoWabern", Book.class);
+        Book book = new Book("", "", "", "");
 
-        System.out.println(book.name + " hat " + book.seiten + " Seiten!");
+        book.save("cleanBook");
 
-        book.seiten = "199";
+        Book book1 = (Book) Book.get("cleanBook", Book.class);
 
-        book.save("expoWabern");
+        System.out.println(book.name);
 
         while (true) {}
 

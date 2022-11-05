@@ -1,0 +1,23 @@
+2 Argumente - getter - 211ms
+1 Argument - getter - 51ms
+3 Argument - getter - 60ms
+2 Argument - getter - 52ms
+
+3 Args - insert - 54ms
+3 Args - insert - 32ms
+2 Args - insert - 56ms
+2 Args - insert - 25ms
+2 Args - insert - 25ms
+
+2 Args - delete - 26ms
+2 Args - delete - 29ms
+3 Args - delete - 44ms
+3 Args - delete - 25ms
+
+ober gefixt (5-10ms | getter bei 50ms)
+
+Objekt
+set/init - 7ms
+get - 60ms
+
+
